@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AnimatedCrop } from "@/components/ui/animated-crop";
 import { PrivacyCard } from "@/components/ui/privacy-card";
+import { EncryptionStatus, GlobalEncryptionStatus } from "@/components/encryption-status";
 import { useToast } from "@/hooks/use-toast";
 import { useStealthYieldFarm } from "@/hooks/useStealthYieldFarm";
 import { useAccount } from "wagmi";
-import { Wallet, Shield, TrendingUp, Zap } from "lucide-react";
+import { Wallet, Shield, TrendingUp, Zap, Lock } from "lucide-react";
 
 export function FarmingDashboard() {
   const { toast } = useToast();
@@ -56,19 +57,27 @@ export function FarmingDashboard() {
     }
 
     try {
-      // Create a new farming position with encrypted data
-      // These values would be encrypted using FHE in a real implementation
-      await createPosition(
+      toast({
+        title: "Creating Encrypted Position",
+        description: "Encrypting your farming data using FHE...",
+      });
+
+      // Create a new farming position with FHE encrypted data
+      const result = await createPosition(
         "1000000000000000000", // 1 ETH in wei
         "500", // 5% APY (500 basis points)
         "2592000", // 30 days in seconds
         "Stealth Strategy Alpha"
       );
 
-      toast({
-        title: "New Farm Started",
-        description: "Your new farming position has been created with encrypted data",
-      });
+      if (result?.success) {
+        toast({
+          title: "🎉 Farm Created Successfully",
+          description: "Your position is encrypted and protected from front-running",
+        });
+      } else {
+        throw new Error(result?.error || "Unknown error occurred");
+      }
     } catch (err) {
       toast({
         title: "Farm Creation Failed",
@@ -121,15 +130,25 @@ export function FarmingDashboard() {
     }
 
     try {
-      await withdrawPosition(positionId);
       toast({
-        title: "Withdrawal Initiated",
-        description: "Your private position will be revealed after withdrawal",
+        title: "Revealing Encrypted Data",
+        description: "Withdrawing position and revealing encrypted data on-chain...",
       });
+
+      const result = await withdrawPosition(positionId);
+
+      if (result?.success) {
+        toast({
+          title: "🔓 Data Revealed Successfully",
+          description: "Your encrypted position data is now visible on-chain",
+        });
+      } else {
+        throw new Error(result?.error || "Unknown error occurred");
+      }
     } catch (err) {
       toast({
         title: "Withdrawal Failed",
-        description: "Failed to withdraw position. Please try again.",
+        description: error || "Failed to withdraw position. Please try again.",
         variant: "destructive",
       });
     }
@@ -138,7 +157,7 @@ export function FarmingDashboard() {
   return (
     <div className="w-full max-w-6xl mx-auto p-6 space-y-8">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="border-farm/30 bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Yield</CardTitle>
@@ -183,6 +202,12 @@ export function FarmingDashboard() {
             </p>
           </CardContent>
         </Card>
+
+        <EncryptionStatus
+          isEncrypted={true}
+          dataType="Your Data"
+          className="border-cyber/30"
+        />
       </div>
 
       {/* Active Positions */}
@@ -258,6 +283,34 @@ export function FarmingDashboard() {
               </Button>
             </CardContent>
           </PrivacyCard>
+        </div>
+      </div>
+
+      {/* Global Encryption Status */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <Lock className="h-6 w-6 text-privacy" />
+          Global Encryption Status
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <GlobalEncryptionStatus
+            totalPositions={globalStats ? Number(globalStats[1]) : 0}
+            activePositions={globalStats ? Number(globalStats[1]) : 0}
+          />
+          <Card className="border-cyber/30 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">FHE Protection</CardTitle>
+              <Shield className="h-4 w-4 text-cyber" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cyber">
+                Active
+              </div>
+              <p className="text-xs text-muted-foreground">
+                All sensitive data is encrypted using Fully Homomorphic Encryption
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

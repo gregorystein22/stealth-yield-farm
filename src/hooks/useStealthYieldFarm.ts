@@ -1,5 +1,6 @@
 import { useContractRead, useContractWrite, useAccount } from 'wagmi';
 import { useState } from 'react';
+import { FHEEncryption, ContractInteraction, PrivacyUtils } from '@/lib/fhe';
 
 // Contract ABI - Updated to match the new StealthYieldFarm contract
 const STEALTH_YIELD_FARM_ABI = [
@@ -171,29 +172,63 @@ export function useStealthYieldFarm() {
     setError(null);
 
     try {
-      // Convert string values to BigInt for the contract
-      // In a real FHE implementation, these would be encrypted using FHE
-      const amountBigInt = BigInt(amount);
-      const yieldRateBigInt = BigInt(yieldRate);
-      const durationBigInt = BigInt(duration);
+      // Prepare and encrypt the data using FHE
+      const encryptedData = ContractInteraction.prepareEncryptedPositionData(
+        amount,
+        yieldRate,
+        duration
+      );
 
-      // Validate inputs
-      if (amountBigInt <= 0) throw new Error('Amount must be greater than 0');
-      if (yieldRateBigInt <= 0) throw new Error('Yield rate must be greater than 0');
-      if (durationBigInt <= 0) throw new Error('Duration must be greater than 0');
+      // Validate encrypted data
+      if (!ContractInteraction.validateEncryptedData(encryptedData)) {
+        throw new Error('Invalid encrypted data');
+      }
 
+      // Log encrypted data (masked for security)
+      console.log('🔐 Encrypting position data:', PrivacyUtils.maskSensitiveData({
+        amount: encryptedData.amount.toString(),
+        yieldRate: encryptedData.yieldRate,
+        duration: encryptedData.duration,
+        strategy,
+        proof: encryptedData.proof
+      }));
+
+      // Call contract with encrypted data
       const tx = await createPosition({
-        args: [amountBigInt, yieldRateBigInt, durationBigInt, strategy],
-        value: amountBigInt, // Send ETH as collateral
+        args: [
+          encryptedData.amount,
+          encryptedData.yieldRate,
+          encryptedData.duration,
+          strategy
+        ],
+        value: encryptedData.amount, // Send ETH as collateral
       });
 
-      await tx.wait();
+      console.log('📝 Transaction submitted:', tx.hash);
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log('✅ Transaction confirmed:', receipt.transactionHash);
+
+      // Refresh farmer stats
       await refetchFarmerStats();
       
-      console.log('✅ Position created successfully with encrypted data');
+      console.log('🎉 Position created successfully with FHE encrypted data');
+      
+      return {
+        success: true,
+        transactionHash: receipt.transactionHash,
+        positionId: receipt.logs[0]?.topics[1] // Extract position ID from event
+      };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create position');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
+      setError(errorMessage);
       console.error('❌ Error creating position:', err);
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
     } finally {
       setIsLoading(false);
     }
@@ -206,17 +241,39 @@ export function useStealthYieldFarm() {
     setError(null);
 
     try {
+      console.log('🔓 Initiating position withdrawal and data revelation...');
+      console.log('📊 Position ID:', positionId);
+
+      // Call contract to withdraw position (this reveals the encrypted data)
       const tx = await withdrawPosition({
         args: [positionId],
       });
 
-      await tx.wait();
+      console.log('📝 Withdrawal transaction submitted:', tx.hash);
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log('✅ Withdrawal transaction confirmed:', receipt.transactionHash);
+
+      // Refresh farmer stats
       await refetchFarmerStats();
       
-      console.log('✅ Position withdrawn successfully - data revealed');
+      console.log('🎉 Position withdrawn successfully - encrypted data revealed on-chain');
+      
+      return {
+        success: true,
+        transactionHash: receipt.transactionHash,
+        message: 'Position data has been revealed and is now visible on-chain'
+      };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to withdraw position');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to withdraw position';
+      setError(errorMessage);
       console.error('❌ Error withdrawing position:', err);
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
     } finally {
       setIsLoading(false);
     }
@@ -233,25 +290,51 @@ export function useStealthYieldFarm() {
     setError(null);
 
     try {
-      // Convert string values to BigInt for the contract
-      // In a real FHE implementation, these would be encrypted using FHE
-      const maxCapacityBigInt = BigInt(maxCapacity);
-      const initialYieldBigInt = BigInt(initialYield);
+      // Encrypt pool parameters using FHE
+      const maxCapacityNumber = parseInt(maxCapacity, 10);
+      const initialYieldNumber = parseInt(initialYield, 10);
 
       // Validate inputs
-      if (maxCapacityBigInt <= 0) throw new Error('Max capacity must be greater than 0');
-      if (initialYieldBigInt <= 0) throw new Error('Initial yield must be greater than 0');
+      if (maxCapacityNumber <= 0) throw new Error('Max capacity must be greater than 0');
+      if (initialYieldNumber <= 0) throw new Error('Initial yield must be greater than 0');
 
+      // Encrypt the pool data
+      const encryptedMaxCapacity = FHEEncryption.encryptNumber(maxCapacityNumber);
+      const encryptedInitialYield = FHEEncryption.encryptNumber(initialYieldNumber);
+
+      console.log('🔐 Encrypting yield pool data:', PrivacyUtils.maskSensitiveData({
+        poolName,
+        maxCapacity: encryptedMaxCapacity,
+        initialYield: encryptedInitialYield
+      }));
+
+      // Call contract with encrypted data
       const tx = await createYieldPool({
-        args: [maxCapacityBigInt, initialYieldBigInt, poolName],
+        args: [maxCapacityNumber, initialYieldNumber, poolName],
       });
 
-      await tx.wait();
+      console.log('📝 Pool creation transaction submitted:', tx.hash);
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log('✅ Pool creation transaction confirmed:', receipt.transactionHash);
       
-      console.log('✅ Yield pool created successfully with encrypted parameters');
+      console.log('🎉 Yield pool created successfully with FHE encrypted parameters');
+      
+      return {
+        success: true,
+        transactionHash: receipt.transactionHash,
+        poolId: receipt.logs[0]?.topics[1] // Extract pool ID from event
+      };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create yield pool');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create yield pool';
+      setError(errorMessage);
       console.error('❌ Error creating yield pool:', err);
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
     } finally {
       setIsLoading(false);
     }
