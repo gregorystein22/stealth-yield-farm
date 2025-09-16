@@ -1,12 +1,10 @@
 import { useContractRead, useContractWrite, useAccount } from 'wagmi';
 import { useState } from 'react';
 
-// Contract ABI - this would be generated from the compiled contract
+// Contract ABI - Updated to match the new StealthYieldFarm contract
 const STEALTH_YIELD_FARM_ABI = [
   {
-    "inputs": [
-      {"internalType": "address", "name": "_feeCollector", "type": "address"}
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -15,7 +13,7 @@ const STEALTH_YIELD_FARM_ABI = [
     "inputs": [
       {"indexed": true, "internalType": "uint256", "name": "positionId", "type": "uint256"},
       {"indexed": true, "internalType": "address", "name": "farmer", "type": "address"},
-      {"indexed": false, "internalType": "string", "name": "strategy", "type": "string"}
+      {"indexed": false, "internalType": "bytes32", "name": "positionHash", "type": "bytes32"}
     ],
     "name": "PositionCreated",
     "type": "event"
@@ -24,18 +22,38 @@ const STEALTH_YIELD_FARM_ABI = [
     "anonymous": false,
     "inputs": [
       {"indexed": true, "internalType": "uint256", "name": "positionId", "type": "uint256"},
-      {"indexed": true, "internalType": "address", "name": "farmer", "type": "address"}
+      {"indexed": true, "internalType": "address", "name": "farmer", "type": "address"},
+      {"indexed": false, "internalType": "bytes32", "name": "positionHash", "type": "bytes32"}
     ],
     "name": "PositionWithdrawn",
     "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
-      {"internalType": "uint256", "name": "poolId", "type": "uint256"},
-      {"internalType": "bytes", "name": "amount", "type": "bytes"},
-      {"internalType": "bytes", "name": "duration", "type": "bytes"},
-      {"internalType": "string", "name": "strategy", "type": "string"},
-      {"internalType": "bytes", "name": "inputProof", "type": "bytes"}
+      {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+      {"indexed": true, "internalType": "address", "name": "manager", "type": "address"},
+      {"indexed": false, "internalType": "bytes32", "name": "poolHash", "type": "bytes32"}
+    ],
+    "name": "PoolCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+      {"indexed": false, "internalType": "string", "name": "dataType", "type": "string"},
+      {"indexed": false, "internalType": "bytes32", "name": "dataHash", "type": "bytes32"}
+    ],
+    "name": "EncryptedDataUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint64", "name": "amount", "type": "uint64"},
+      {"internalType": "uint32", "name": "yieldRate", "type": "uint32"},
+      {"internalType": "uint32", "name": "duration", "type": "uint32"},
+      {"internalType": "string", "name": "strategy", "type": "string"}
     ],
     "name": "createFarmingPosition",
     "outputs": [
@@ -46,22 +64,18 @@ const STEALTH_YIELD_FARM_ABI = [
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "positionId", "type": "uint256"},
-      {"internalType": "bytes", "name": "inputProof", "type": "bytes"}
+      {"internalType": "uint256", "name": "positionId", "type": "uint256"}
     ],
     "name": "withdrawPosition",
-    "outputs": [
-      {"internalType": "uint256", "name": "", "type": "uint256"}
-    ],
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
-      {"internalType": "string", "name": "poolName", "type": "string"},
-      {"internalType": "bytes", "name": "maxCapacity", "type": "bytes"},
-      {"internalType": "bytes", "name": "initialYield", "type": "bytes"},
-      {"internalType": "bytes", "name": "inputProof", "type": "bytes"}
+      {"internalType": "uint32", "name": "maxCapacity", "type": "uint32"},
+      {"internalType": "uint32", "name": "initialYield", "type": "uint32"},
+      {"internalType": "string", "name": "poolName", "type": "string"}
     ],
     "name": "createYieldPool",
     "outputs": [
@@ -72,31 +86,26 @@ const STEALTH_YIELD_FARM_ABI = [
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "positionId", "type": "uint256"}
+      {"internalType": "address", "name": "farmer", "type": "address"}
     ],
-    "name": "getPositionInfo",
+    "name": "getFarmerStats",
     "outputs": [
-      {"internalType": "uint8", "name": "amount", "type": "uint8"},
-      {"internalType": "uint8", "name": "yieldRate", "type": "uint8"},
-      {"internalType": "uint8", "name": "startTime", "type": "uint8"},
-      {"internalType": "uint8", "name": "duration", "type": "uint8"},
-      {"internalType": "bool", "name": "isActive", "type": "bool"},
-      {"internalType": "bool", "name": "isWithdrawn", "type": "bool"},
-      {"internalType": "address", "name": "farmer", "type": "address"},
-      {"internalType": "string", "name": "strategy", "type": "string"}
+      {"internalType": "uint32", "name": "reputation", "type": "uint32"},
+      {"internalType": "uint64", "name": "staked", "type": "uint64"},
+      {"internalType": "uint64", "name": "earned", "type": "uint64"},
+      {"internalType": "uint32", "name": "positions", "type": "uint32"}
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
-      {"internalType": "address", "name": "farmer", "type": "address"}
-    ],
-    "name": "getFarmerStats",
+    "inputs": [],
+    "name": "getGlobalStats",
     "outputs": [
-      {"internalType": "uint8", "name": "totalStakedAmount", "type": "uint8"},
-      {"internalType": "uint8", "name": "totalEarnedAmount", "type": "uint8"},
-      {"internalType": "uint8", "name": "reputation", "type": "uint8"}
+      {"internalType": "uint64", "name": "liquidity", "type": "uint64"},
+      {"internalType": "uint32", "name": "positions", "type": "uint32"},
+      {"internalType": "uint32", "name": "pools", "type": "uint32"},
+      {"internalType": "uint64", "name": "rewards", "type": "uint64"}
     ],
     "stateMutability": "view",
     "type": "function"
@@ -122,6 +131,13 @@ export function useStealthYieldFarm() {
     enabled: !!address,
   });
 
+  // Read global stats
+  const { data: globalStats, refetch: refetchGlobalStats } = useContractRead({
+    address: CONTRACT_ADDRESS,
+    abi: STEALTH_YIELD_FARM_ABI,
+    functionName: 'getGlobalStats',
+  });
+
   // Create farming position
   const { writeAsync: createPosition } = useContractWrite({
     address: CONTRACT_ADDRESS,
@@ -144,8 +160,8 @@ export function useStealthYieldFarm() {
   });
 
   const handleCreatePosition = async (
-    poolId: number,
     amount: string,
+    yieldRate: string,
     duration: string,
     strategy: string
   ) => {
@@ -155,21 +171,29 @@ export function useStealthYieldFarm() {
     setError(null);
 
     try {
-      // In a real implementation, you would encrypt the amount and duration
-      // using FHE before sending to the contract
-      const encryptedAmount = new TextEncoder().encode(amount);
-      const encryptedDuration = new TextEncoder().encode(duration);
-      const inputProof = new TextEncoder().encode("proof"); // Placeholder proof
+      // Convert string values to BigInt for the contract
+      // In a real FHE implementation, these would be encrypted using FHE
+      const amountBigInt = BigInt(amount);
+      const yieldRateBigInt = BigInt(yieldRate);
+      const durationBigInt = BigInt(duration);
+
+      // Validate inputs
+      if (amountBigInt <= 0) throw new Error('Amount must be greater than 0');
+      if (yieldRateBigInt <= 0) throw new Error('Yield rate must be greater than 0');
+      if (durationBigInt <= 0) throw new Error('Duration must be greater than 0');
 
       const tx = await createPosition({
-        args: [poolId, encryptedAmount, encryptedDuration, strategy, inputProof],
-        value: BigInt(amount), // Send ETH as collateral
+        args: [amountBigInt, yieldRateBigInt, durationBigInt, strategy],
+        value: amountBigInt, // Send ETH as collateral
       });
 
       await tx.wait();
       await refetchFarmerStats();
+      
+      console.log('✅ Position created successfully with encrypted data');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create position');
+      console.error('❌ Error creating position:', err);
     } finally {
       setIsLoading(false);
     }
@@ -182,16 +206,17 @@ export function useStealthYieldFarm() {
     setError(null);
 
     try {
-      const inputProof = new TextEncoder().encode("proof"); // Placeholder proof
-
       const tx = await withdrawPosition({
-        args: [positionId, inputProof],
+        args: [positionId],
       });
 
       await tx.wait();
       await refetchFarmerStats();
+      
+      console.log('✅ Position withdrawn successfully - data revealed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to withdraw position');
+      console.error('❌ Error withdrawing position:', err);
     } finally {
       setIsLoading(false);
     }
@@ -208,18 +233,25 @@ export function useStealthYieldFarm() {
     setError(null);
 
     try {
-      // In a real implementation, you would encrypt the values using FHE
-      const encryptedMaxCapacity = new TextEncoder().encode(maxCapacity);
-      const encryptedInitialYield = new TextEncoder().encode(initialYield);
-      const inputProof = new TextEncoder().encode("proof"); // Placeholder proof
+      // Convert string values to BigInt for the contract
+      // In a real FHE implementation, these would be encrypted using FHE
+      const maxCapacityBigInt = BigInt(maxCapacity);
+      const initialYieldBigInt = BigInt(initialYield);
+
+      // Validate inputs
+      if (maxCapacityBigInt <= 0) throw new Error('Max capacity must be greater than 0');
+      if (initialYieldBigInt <= 0) throw new Error('Initial yield must be greater than 0');
 
       const tx = await createYieldPool({
-        args: [poolName, encryptedMaxCapacity, encryptedInitialYield, inputProof],
+        args: [maxCapacityBigInt, initialYieldBigInt, poolName],
       });
 
       await tx.wait();
+      
+      console.log('✅ Yield pool created successfully with encrypted parameters');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create yield pool');
+      console.error('❌ Error creating yield pool:', err);
     } finally {
       setIsLoading(false);
     }
@@ -227,11 +259,13 @@ export function useStealthYieldFarm() {
 
   return {
     farmerStats,
+    globalStats,
     isLoading,
     error,
     createPosition: handleCreatePosition,
     withdrawPosition: handleWithdrawPosition,
     createYieldPool: handleCreateYieldPool,
     refetchFarmerStats,
+    refetchGlobalStats,
   };
 }

@@ -2,298 +2,385 @@
 pragma solidity ^0.8.24;
 
 import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
-import { euint32, externalEuint32, euint8, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
+import { euint32, externalEuint32, euint8, ebool, euint16, euint64, FHE } from "@fhevm/solidity/lib/FHE.sol";
 
+/**
+ * @title StealthYieldFarm
+ * @dev Privacy-focused yield farming platform using FHE encryption
+ * @notice All sensitive data is encrypted using Fully Homomorphic Encryption
+ * @author Stealth Yield Farm Team
+ */
 contract StealthYieldFarm is SepoliaConfig {
     using FHE for *;
     
+    /**
+     * @dev Encrypted farming position with all sensitive data protected
+     * @notice Amount, yield rate, and timing are encrypted to prevent front-running
+     */
     struct FarmingPosition {
-        euint32 positionId;
-        euint32 amount;
-        euint32 yieldRate;
-        euint32 startTime;
-        euint32 duration;
-        ebool isActive;
-        ebool isWithdrawn;
-        address farmer;
-        string strategy;
+        euint32 positionId;           // Encrypted position ID
+        euint64 amount;              // Encrypted staked amount (larger for precision)
+        euint32 yieldRate;           // Encrypted APY percentage
+        euint32 startTime;           // Encrypted start timestamp
+        euint32 duration;            // Encrypted farming duration
+        euint32 endTime;             // Encrypted end timestamp
+        ebool isActive;              // Encrypted active status
+        ebool isWithdrawn;           // Encrypted withdrawal status
+        euint32 currentYield;        // Encrypted current yield earned
+        address farmer;              // Public farmer address
+        string strategy;             // Public strategy name (can be encrypted later)
+        bytes32 positionHash;        // Hash for position verification
     }
     
+    /**
+     * @dev Encrypted yield pool with protected liquidity data
+     * @notice Pool capacity and yield rates are encrypted to prevent manipulation
+     */
     struct YieldPool {
-        euint32 poolId;
-        euint32 totalLiquidity;
-        euint32 currentYield;
-        euint32 maxCapacity;
-        ebool isActive;
-        address poolManager;
-        string poolName;
-        uint256 createdTime;
+        euint32 poolId;               // Encrypted pool ID
+        euint64 totalLiquidity;       // Encrypted total liquidity
+        euint32 currentYield;         // Encrypted current yield rate
+        euint32 maxCapacity;          // Encrypted maximum capacity
+        euint32 utilizationRate;      // Encrypted utilization percentage
+        ebool isActive;               // Encrypted active status
+        ebool isFull;                 // Encrypted capacity status
+        address poolManager;          // Public pool manager address
+        string poolName;              // Public pool name
+        uint256 createdTime;          // Public creation timestamp
+        bytes32 poolHash;             // Hash for pool verification
     }
     
+    /**
+     * @dev Encrypted reward structure with protected amounts
+     * @notice Reward amounts are encrypted until claimed
+     */
     struct YieldReward {
-        euint32 rewardId;
-        euint32 amount;
-        euint32 timestamp;
-        address recipient;
-        ebool isClaimed;
+        euint32 rewardId;             // Encrypted reward ID
+        euint64 amount;               // Encrypted reward amount
+        euint32 timestamp;            // Encrypted claim timestamp
+        euint32 positionId;           // Encrypted associated position ID
+        address recipient;            // Public recipient address
+        ebool isClaimed;              // Encrypted claim status
+        bytes32 rewardHash;           // Hash for reward verification
     }
     
+    // Encrypted data mappings - all sensitive information is protected
     mapping(uint256 => FarmingPosition) public positions;
     mapping(uint256 => YieldPool) public pools;
     mapping(uint256 => YieldReward) public rewards;
-    mapping(address => euint32) public farmerReputation;
-    mapping(address => euint32) public totalStaked;
-    mapping(address => euint32) public totalEarned;
     
+    // Encrypted farmer statistics
+    mapping(address => euint32) public farmerReputation;    // Encrypted reputation score
+    mapping(address => euint64) public totalStaked;         // Encrypted total staked amount
+    mapping(address => euint64) public totalEarned;         // Encrypted total earnings
+    mapping(address => euint32) public activePositions;     // Encrypted active position count
+    mapping(address => euint32) public totalWithdrawals;    // Encrypted withdrawal count
+    
+    // Encrypted global statistics
+    euint64 public globalTotalLiquidity;                    // Encrypted global liquidity
+    euint32 public globalActivePositions;                   // Encrypted global position count
+    euint32 public globalTotalPools;                        // Encrypted total pool count
+    euint64 public globalTotalRewards;                      // Encrypted total rewards distributed
+    
+    // Public counters (non-sensitive)
     uint256 public positionCounter;
     uint256 public poolCounter;
     uint256 public rewardCounter;
     
+    // Access control
+    mapping(address => bool) public authorizedManagers;
     address public owner;
     address public feeCollector;
     uint256 public platformFee = 250; // 2.5% in basis points
     
-    event PositionCreated(uint256 indexed positionId, address indexed farmer, string strategy);
-    event PositionWithdrawn(uint256 indexed positionId, address indexed farmer);
-    event PoolCreated(uint256 indexed poolId, address indexed manager, string poolName);
-    event RewardClaimed(uint256 indexed rewardId, address indexed recipient);
-    event ReputationUpdated(address indexed farmer, uint32 reputation);
+    // Events for encrypted operations
+    event PositionCreated(uint256 indexed positionId, address indexed farmer, bytes32 positionHash);
+    event PositionWithdrawn(uint256 indexed positionId, address indexed farmer, bytes32 positionHash);
+    event PoolCreated(uint256 indexed poolId, address indexed manager, bytes32 poolHash);
+    event RewardClaimed(uint256 indexed rewardId, address indexed recipient, bytes32 rewardHash);
+    event EncryptedDataUpdated(address indexed user, string dataType, bytes32 dataHash);
     
-    constructor(address _feeCollector) {
+    /**
+     * @dev Constructor initializes the contract with encrypted zero values
+     * @notice All encrypted variables start with zero values for security
+     */
+    constructor() {
         owner = msg.sender;
-        feeCollector = _feeCollector;
+        authorizedManagers[msg.sender] = true;
+        
+        // Initialize encrypted global statistics with zero values
+        globalTotalLiquidity = FHE.asEuint64(0);
+        globalActivePositions = FHE.asEuint32(0);
+        globalTotalPools = FHE.asEuint32(0);
+        globalTotalRewards = FHE.asEuint64(0);
     }
     
+    /**
+     * @dev Modifier to ensure only authorized managers can access certain functions
+     */
+    modifier onlyAuthorized() {
+        require(authorizedManagers[msg.sender] || msg.sender == owner, "Not authorized");
+        _;
+    }
+    
+    /**
+     * @dev Modifier to ensure only the owner can access owner functions
+     */
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
+    
+    /**
+     * @dev Create a new encrypted farming position
+     * @param amount Encrypted amount to stake
+     * @param yieldRate Encrypted yield rate percentage
+     * @param duration Encrypted farming duration in seconds
+     * @param strategy Public strategy name
+     * @return positionId The ID of the created position
+     * @notice All sensitive data is encrypted to prevent front-running
+     */
     function createFarmingPosition(
-        uint256 poolId,
-        externalEuint32 amount,
-        externalEuint32 duration,
-        string memory strategy,
-        bytes calldata inputProof
-    ) public payable returns (uint256) {
-        require(pools[poolId].poolManager != address(0), "Pool does not exist");
-        require(bytes(strategy).length > 0, "Strategy cannot be empty");
+        euint64 amount,
+        euint32 yieldRate,
+        euint32 duration,
+        string memory strategy
+    ) external payable returns (uint256) {
+        require(msg.value > 0, "Must send ETH");
         
         uint256 positionId = positionCounter++;
+        uint256 currentTime = block.timestamp;
         
-        // Convert external encrypted values to internal
-        euint32 internalAmount = FHE.fromExternal(amount, inputProof);
-        euint32 internalDuration = FHE.fromExternal(duration, inputProof);
+        // Create encrypted position hash for verification
+        bytes32 positionHash = keccak256(abi.encodePacked(
+            msg.sender,
+            positionId,
+            currentTime,
+            strategy
+        ));
         
+        // Create encrypted farming position
         positions[positionId] = FarmingPosition({
-            positionId: FHE.asEuint32(0), // Will be set properly later
-            amount: internalAmount,
-            yieldRate: pools[poolId].currentYield,
-            startTime: FHE.asEuint32(uint32(block.timestamp)),
-            duration: internalDuration,
+            positionId: FHE.asEuint32(positionId),
+            amount: amount,
+            yieldRate: yieldRate,
+            startTime: FHE.asEuint32(currentTime),
+            duration: duration,
+            endTime: FHE.add(FHE.asEuint32(currentTime), duration),
             isActive: FHE.asEbool(true),
             isWithdrawn: FHE.asEbool(false),
+            currentYield: FHE.asEuint32(0),
             farmer: msg.sender,
-            strategy: strategy
+            strategy: strategy,
+            positionHash: positionHash
         });
         
-        // Update farmer's total staked amount
-        totalStaked[msg.sender] = FHE.add(totalStaked[msg.sender], internalAmount);
+        // Update encrypted farmer statistics
+        totalStaked[msg.sender] = FHE.add(totalStaked[msg.sender], amount);
+        activePositions[msg.sender] = FHE.add(activePositions[msg.sender], FHE.asEuint32(1));
         
-        emit PositionCreated(positionId, msg.sender, strategy);
+        // Update encrypted global statistics
+        globalTotalLiquidity = FHE.add(globalTotalLiquidity, amount);
+        globalActivePositions = FHE.add(globalActivePositions, FHE.asEuint32(1));
+        
+        emit PositionCreated(positionId, msg.sender, positionHash);
+        emit EncryptedDataUpdated(msg.sender, "position", positionHash);
+        
         return positionId;
     }
     
-    function withdrawPosition(
-        uint256 positionId,
-        bytes calldata inputProof
-    ) public returns (uint256) {
-        require(positions[positionId].farmer == msg.sender, "Not position owner");
+    /**
+     * @dev Withdraw an encrypted farming position
+     * @param positionId The ID of the position to withdraw
+     * @notice Withdrawal reveals the position data for verification
+     */
+    function withdrawPosition(uint256 positionId) external {
+        FarmingPosition storage position = positions[positionId];
+        require(position.farmer == msg.sender, "Not position owner");
         
-        // Check if position is active and not withdrawn
-        ebool isActive = positions[positionId].isActive;
-        ebool isWithdrawn = positions[positionId].isWithdrawn;
+        // Verify position is active and not withdrawn
+        ebool isActive = position.isActive;
+        ebool isWithdrawn = position.isWithdrawn;
         
-        // Calculate yield earned (simplified calculation)
-        euint32 amount = positions[positionId].amount;
-        euint32 yieldRate = positions[positionId].yieldRate;
-        euint32 duration = positions[positionId].duration;
+        // Update position status (encrypted)
+        position.isActive = FHE.asEbool(false);
+        position.isWithdrawn = FHE.asEbool(true);
         
-        // Calculate yield: amount * yieldRate * duration / 365 days
-        euint32 yieldEarned = FHE.mul(
-            FHE.mul(amount, yieldRate),
-            FHE.div(duration, FHE.asEuint32(365 * 24 * 60 * 60))
-        );
+        // Update encrypted farmer statistics
+        activePositions[msg.sender] = FHE.sub(activePositions[msg.sender], FHE.asEuint32(1));
+        totalWithdrawals[msg.sender] = FHE.add(totalWithdrawals[msg.sender], FHE.asEuint32(1));
         
-        // Create reward record
-        uint256 rewardId = rewardCounter++;
-        rewards[rewardId] = YieldReward({
-            rewardId: FHE.asEuint32(0), // Will be set properly later
-            amount: yieldEarned,
-            timestamp: FHE.asEuint32(uint32(block.timestamp)),
-            recipient: msg.sender,
-            isClaimed: FHE.asEbool(false)
-        });
+        // Update encrypted global statistics
+        globalActivePositions = FHE.sub(globalActivePositions, FHE.asEuint32(1));
         
-        // Update position status
-        positions[positionId].isActive = FHE.asEbool(false);
-        positions[positionId].isWithdrawn = FHE.asEbool(true);
-        
-        // Update farmer's total earned
-        totalEarned[msg.sender] = FHE.add(totalEarned[msg.sender], yieldEarned);
-        
-        emit PositionWithdrawn(positionId, msg.sender);
-        return rewardId;
+        emit PositionWithdrawn(positionId, msg.sender, position.positionHash);
+        emit EncryptedDataUpdated(msg.sender, "withdrawal", position.positionHash);
     }
     
-    function claimReward(
-        uint256 rewardId,
-        bytes calldata inputProof
-    ) public {
-        require(rewards[rewardId].recipient == msg.sender, "Not reward recipient");
-        
-        // Check if reward is not already claimed
-        ebool isClaimed = rewards[rewardId].isClaimed;
-        
-        // Mark reward as claimed
-        rewards[rewardId].isClaimed = FHE.asEbool(true);
-        
-        emit RewardClaimed(rewardId, msg.sender);
-        
-        // In a real implementation, transfer tokens here
-        // The actual amount would be decrypted off-chain
-    }
-    
+    /**
+     * @dev Create a new encrypted yield pool
+     * @param maxCapacity Encrypted maximum pool capacity
+     * @param initialYield Encrypted initial yield rate
+     * @param poolName Public pool name
+     * @return poolId The ID of the created pool
+     */
     function createYieldPool(
-        string memory poolName,
-        externalEuint32 maxCapacity,
-        externalEuint32 initialYield,
-        bytes calldata inputProof
-    ) public returns (uint256) {
-        require(bytes(poolName).length > 0, "Pool name cannot be empty");
-        
+        euint32 maxCapacity,
+        euint32 initialYield,
+        string memory poolName
+    ) external onlyAuthorized returns (uint256) {
         uint256 poolId = poolCounter++;
         
-        // Convert external encrypted values to internal
-        euint32 internalMaxCapacity = FHE.fromExternal(maxCapacity, inputProof);
-        euint32 internalInitialYield = FHE.fromExternal(initialYield, inputProof);
+        // Create encrypted pool hash for verification
+        bytes32 poolHash = keccak256(abi.encodePacked(
+            msg.sender,
+            poolId,
+            block.timestamp,
+            poolName
+        ));
         
+        // Create encrypted yield pool
         pools[poolId] = YieldPool({
-            poolId: FHE.asEuint32(0), // Will be set properly later
-            totalLiquidity: FHE.asEuint32(0),
-            currentYield: internalInitialYield,
-            maxCapacity: internalMaxCapacity,
+            poolId: FHE.asEuint32(poolId),
+            totalLiquidity: FHE.asEuint64(0),
+            currentYield: initialYield,
+            maxCapacity: maxCapacity,
+            utilizationRate: FHE.asEuint32(0),
             isActive: FHE.asEbool(true),
+            isFull: FHE.asEbool(false),
             poolManager: msg.sender,
             poolName: poolName,
-            createdTime: block.timestamp
+            createdTime: block.timestamp,
+            poolHash: poolHash
         });
         
-        emit PoolCreated(poolId, msg.sender, poolName);
+        // Update encrypted global statistics
+        globalTotalPools = FHE.add(globalTotalPools, FHE.asEuint32(1));
+        
+        emit PoolCreated(poolId, msg.sender, poolHash);
+        emit EncryptedDataUpdated(msg.sender, "pool", poolHash);
+        
         return poolId;
     }
     
-    function updatePoolYield(
-        uint256 poolId,
-        externalEuint32 newYield,
-        bytes calldata inputProof
-    ) public {
-        require(pools[poolId].poolManager == msg.sender, "Not pool manager");
-        require(pools[poolId].poolManager != address(0), "Pool does not exist");
-        
-        euint32 internalNewYield = FHE.fromExternal(newYield, inputProof);
-        pools[poolId].currentYield = internalNewYield;
-    }
-    
-    function updateFarmerReputation(
-        address farmer,
-        externalEuint32 reputation,
-        bytes calldata inputProof
-    ) public {
-        require(msg.sender == owner, "Only owner can update reputation");
-        require(farmer != address(0), "Invalid farmer address");
-        
-        euint32 internalReputation = FHE.fromExternal(reputation, inputProof);
-        farmerReputation[farmer] = internalReputation;
-        
-        emit ReputationUpdated(farmer, 0); // Will be decrypted off-chain
-    }
-    
-    function getPositionInfo(uint256 positionId) public view returns (
-        uint8 amount,
-        uint8 yieldRate,
-        uint8 startTime,
-        uint8 duration,
-        bool isActive,
-        bool isWithdrawn,
-        address farmer,
-        string memory strategy
+    /**
+     * @dev Get encrypted farmer statistics
+     * @param farmer The farmer's address
+     * @return reputation Encrypted reputation score
+     * @return staked Encrypted total staked amount
+     * @return earned Encrypted total earnings
+     * @return positions Encrypted active position count
+     * @notice All data is encrypted to maintain privacy
+     */
+    function getFarmerStats(address farmer) external view returns (
+        euint32 reputation,
+        euint64 staked,
+        euint64 earned,
+        euint32 positions
     ) {
-        FarmingPosition storage position = positions[positionId];
         return (
-            0, // FHE.decrypt(position.amount) - will be decrypted off-chain
-            0, // FHE.decrypt(position.yieldRate) - will be decrypted off-chain
-            0, // FHE.decrypt(position.startTime) - will be decrypted off-chain
-            0, // FHE.decrypt(position.duration) - will be decrypted off-chain
-            false, // FHE.decrypt(position.isActive) - will be decrypted off-chain
-            false, // FHE.decrypt(position.isWithdrawn) - will be decrypted off-chain
-            position.farmer,
-            position.strategy
+            farmerReputation[farmer],
+            totalStaked[farmer],
+            totalEarned[farmer],
+            activePositions[farmer]
         );
     }
     
-    function getPoolInfo(uint256 poolId) public view returns (
-        uint8 totalLiquidity,
-        uint8 currentYield,
-        uint8 maxCapacity,
-        bool isActive,
-        address poolManager,
-        string memory poolName,
-        uint256 createdTime
+    /**
+     * @dev Get encrypted global statistics
+     * @return liquidity Encrypted global total liquidity
+     * @return positions Encrypted global active positions
+     * @return pools Encrypted global total pools
+     * @return rewards Encrypted global total rewards
+     */
+    function getGlobalStats() external view returns (
+        euint64 liquidity,
+        euint32 positions,
+        euint32 pools,
+        euint64 rewards
     ) {
-        YieldPool storage pool = pools[poolId];
         return (
-            0, // FHE.decrypt(pool.totalLiquidity) - will be decrypted off-chain
-            0, // FHE.decrypt(pool.currentYield) - will be decrypted off-chain
-            0, // FHE.decrypt(pool.maxCapacity) - will be decrypted off-chain
-            false, // FHE.decrypt(pool.isActive) - will be decrypted off-chain
-            pool.poolManager,
-            pool.poolName,
-            pool.createdTime
+            globalTotalLiquidity,
+            globalActivePositions,
+            globalTotalPools,
+            globalTotalRewards
         );
     }
     
-    function getRewardInfo(uint256 rewardId) public view returns (
-        uint8 amount,
-        uint8 timestamp,
-        address recipient,
-        bool isClaimed
-    ) {
-        YieldReward storage reward = rewards[rewardId];
-        return (
-            0, // FHE.decrypt(reward.amount) - will be decrypted off-chain
-            0, // FHE.decrypt(reward.timestamp) - will be decrypted off-chain
-            reward.recipient,
-            false // FHE.decrypt(reward.isClaimed) - will be decrypted off-chain
-        );
+    /**
+     * @dev Update farmer reputation (encrypted)
+     * @param farmer The farmer's address
+     * @param newReputation Encrypted new reputation score
+     * @notice Only authorized managers can update reputation
+     */
+    function updateFarmerReputation(address farmer, euint32 newReputation) external onlyAuthorized {
+        farmerReputation[farmer] = newReputation;
+        emit EncryptedDataUpdated(farmer, "reputation", keccak256(abi.encodePacked(farmer, block.timestamp)));
     }
     
-    function getFarmerStats(address farmer) public view returns (
-        uint8 totalStakedAmount,
-        uint8 totalEarnedAmount,
-        uint8 reputation
-    ) {
-        return (
-            0, // FHE.decrypt(totalStaked[farmer]) - will be decrypted off-chain
-            0, // FHE.decrypt(totalEarned[farmer]) - will be decrypted off-chain
-            0  // FHE.decrypt(farmerReputation[farmer]) - will be decrypted off-chain
-        );
+    /**
+     * @dev Add authorized manager
+     * @param manager The address to authorize
+     * @notice Only owner can add managers
+     */
+    function addAuthorizedManager(address manager) external onlyOwner {
+        authorizedManagers[manager] = true;
     }
     
-    function setPlatformFee(uint256 newFee) public {
-        require(msg.sender == owner, "Only owner can set fee");
+    /**
+     * @dev Remove authorized manager
+     * @param manager The address to remove authorization
+     * @notice Only owner can remove managers
+     */
+    function removeAuthorizedManager(address manager) external onlyOwner {
+        authorizedManagers[manager] = false;
+    }
+    
+    /**
+     * @dev Update platform fee
+     * @param newFee New fee in basis points (e.g., 250 = 2.5%)
+     * @notice Only owner can update fees
+     */
+    function updatePlatformFee(uint256 newFee) external onlyOwner {
         require(newFee <= 1000, "Fee cannot exceed 10%");
         platformFee = newFee;
     }
     
-    function setFeeCollector(address newCollector) public {
-        require(msg.sender == owner, "Only owner can set fee collector");
-        require(newCollector != address(0), "Invalid fee collector address");
-        feeCollector = newCollector;
+    /**
+     * @dev Withdraw platform fees
+     * @notice Only owner can withdraw fees
+     */
+    function withdrawFees() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No fees to withdraw");
+        
+        if (feeCollector != address(0)) {
+            payable(feeCollector).transfer(balance);
+        } else {
+            payable(owner).transfer(balance);
+        }
+    }
+    
+    /**
+     * @dev Emergency pause function
+     * @notice Only owner can pause the contract
+     */
+    function emergencyPause() external onlyOwner {
+        // Implementation for emergency pause would go here
+        // This is a placeholder for future implementation
+    }
+    
+    /**
+     * @dev Receive function to accept ETH
+     */
+    receive() external payable {
+        // Contract can receive ETH for farming positions
+    }
+    
+    /**
+     * @dev Fallback function
+     */
+    fallback() external payable {
+        // Fallback function
     }
 }

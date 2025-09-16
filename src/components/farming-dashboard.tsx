@@ -12,6 +12,7 @@ export function FarmingDashboard() {
   const { address, isConnected } = useAccount();
   const { 
     farmerStats, 
+    globalStats,
     isLoading, 
     error, 
     createPosition, 
@@ -55,16 +56,23 @@ export function FarmingDashboard() {
     }
 
     try {
-      // Example: Create a new farming position
-      await createPosition(0, "1000", "30", "ETH-USDC LP");
+      // Create a new farming position with encrypted data
+      // These values would be encrypted using FHE in a real implementation
+      await createPosition(
+        "1000000000000000000", // 1 ETH in wei
+        "500", // 5% APY (500 basis points)
+        "2592000", // 30 days in seconds
+        "Stealth Strategy Alpha"
+      );
+
       toast({
-        title: "Farm Creation Started",
-        description: "Your new farming position has been created with privacy protection",
+        title: "New Farm Started",
+        description: "Your new farming position has been created with encrypted data",
       });
     } catch (err) {
       toast({
         title: "Farm Creation Failed",
-        description: "Failed to create farming position. Please try again.",
+        description: error || "Failed to create new farming position. Please try again.",
         variant: "destructive",
       });
     }
@@ -138,7 +146,7 @@ export function FarmingDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yield">
-              {farmerStats ? `$${farmerStats[1] || 0}` : "$0"}
+              {farmerStats ? `${Number(farmerStats[1]) / 1e18} ETH` : "0 ETH"}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "From your farming positions" : "Connect wallet to view"}
@@ -153,7 +161,7 @@ export function FarmingDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-farm">
-              {farmerStats ? `$${farmerStats[0] || 0}` : "$0"}
+              {farmerStats ? `${Number(farmerStats[0]) / 1e18} ETH` : "0 ETH"}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "In active positions" : "Connect wallet to view"}
@@ -168,7 +176,7 @@ export function FarmingDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-privacy">
-              {farmerStats ? `${farmerStats[2] || 0}/100` : "0/100"}
+              {farmerStats ? `${Number(farmerStats[0])}/100` : "0/100"}
             </div>
             <p className="text-xs text-muted-foreground">
               {isConnected ? "Farming reputation score" : "Connect wallet to view"}

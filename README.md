@@ -1,102 +1,192 @@
-# Stealth Yield Farm
+# 🌱 Stealth Yield Farm
 
-A privacy-focused yield farming platform that protects your farming strategies using Fully Homomorphic Encryption (FHE) technology.
+> **"Farm in Privacy, Reap in Public"** 🌾
 
-## Features
+A revolutionary DeFi platform that combines traditional yield farming with cutting-edge privacy technology. Your farming strategies remain encrypted until harvest, protecting you from copycat whales and MEV attacks.
 
-- **Encrypted Positions**: Your farming positions are encrypted so whales cannot copy profitable strategies until after withdrawal
+## 🚀 Why Stealth Yield Farm?
+
+In traditional DeFi, your profitable strategies are visible to everyone, allowing whales to copy your moves and front-run your positions. **Stealth Yield Farm** changes this game entirely.
+
+### 🛡️ Privacy-First Approach
+- **Encrypted Positions**: Your farming data is encrypted using FHE (Fully Homomorphic Encryption)
+- **Invisible Strategies**: Competitors can't see your positions until you withdraw
 - **MEV Protection**: Advanced protection against Maximal Extractable Value attacks
-- **Maximum Yields**: Optimized yield farming strategies with privacy protection
-- **Real Wallet Integration**: Connect with popular wallets like MetaMask, WalletConnect, and more
-- **FHE Technology**: Built on Zama's FHE technology for complete privacy
+- **Whale-Proof**: Large players can't copy your profitable strategies
 
-## Technologies
+### 🌾 Agricultural Metaphor
+Just like a real farmer who keeps their best techniques secret until harvest, our platform protects your DeFi strategies until you're ready to reveal them.
 
-This project is built with:
+## ✨ Core Features
 
-- **Frontend**: Vite, TypeScript, React, shadcn-ui, Tailwind CSS
-- **Wallet Integration**: RainbowKit, Wagmi, Viem
-- **Blockchain**: Ethereum Sepolia Testnet
-- **Privacy**: Zama FHE (Fully Homomorphic Encryption)
-- **Smart Contracts**: Solidity with FHE support
+| Feature | Description | Benefit |
+|---------|-------------|---------|
+| 🔐 **FHE Encryption** | All position data encrypted on-chain | Complete privacy protection |
+| 🌱 **Stealth Farming** | Invisible yield farming strategies | No strategy copying |
+| ⚡ **MEV Shield** | Protection against front-running | Keep your profits |
+| 🎯 **Smart Yields** | Optimized farming algorithms | Maximum returns |
+| 🔗 **Multi-Wallet** | Support for all major wallets | Easy access |
 
-## Getting Started
+## 🏗️ Technical Architecture
 
-### Prerequisites
+### Frontend Stack
+- **⚡ Vite** - Lightning-fast build tool
+- **⚛️ React 18** - Modern UI framework
+- **🎨 Tailwind CSS** - Utility-first styling
+- **🧩 shadcn/ui** - Beautiful component library
 
-- Node.js (v18 or higher)
-- npm or yarn
-- A Web3 wallet (MetaMask, WalletConnect, etc.)
+### Blockchain Integration
+- **🔗 RainbowKit** - Wallet connection made simple
+- **⚡ Wagmi** - React hooks for Ethereum
+- **🔧 Viem** - TypeScript interface for Ethereum
+- **🌐 Sepolia Testnet** - Safe testing environment
 
-### Installation
+### Privacy Technology
+- **🔐 Zama FHE** - Fully Homomorphic Encryption
+- **📊 Encrypted Data** - All sensitive data encrypted
+- **🔒 Zero-Knowledge** - Prove without revealing
 
-1. Clone the repository:
+## 🚀 Quick Start Guide
+
+### 📋 Prerequisites
+- **Node.js** v18+ (Latest LTS recommended)
+- **npm** or **yarn** package manager
+- **Web3 Wallet** (MetaMask, WalletConnect, Coinbase Wallet, etc.)
+- **Sepolia ETH** for testing (get from [Sepolia Faucet](https://sepoliafaucet.com/))
+
+### ⚡ Installation
+
 ```bash
+# 1. Clone the repository
 git clone https://github.com/gregorystein22/stealth-yield-farm.git
 cd stealth-yield-farm
-```
 
-2. Install dependencies:
-```bash
+# 2. Install dependencies
 npm install
-```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env.local
-```
-
-4. Start the development server:
-```bash
+# 3. Start development server
 npm run dev
 ```
 
-### Environment Variables
+### 🔧 Environment Configuration
 
-Create a `.env.local` file with the following variables:
+Create a `.env.local` file in the root directory:
 
 ```env
-NEXT_PUBLIC_CHAIN_ID=11155111
-NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
-NEXT_PUBLIC_INFURA_API_KEY=b18fb7e6ca7045ac83c41157ab93f990
-NEXT_PUBLIC_RPC_URL=https://1rpc.io/sepolia
+# Blockchain Configuration
+VITE_CHAIN_ID=11155111
+VITE_RPC_URL=https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
+VITE_RPC_URL_BACKUP=https://1rpc.io/sepolia
+
+# Wallet Connect
+VITE_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
+
+# API Keys
+VITE_INFURA_API_KEY=b18fb7e6ca7045ac83c41157ab93f990
+
+# Contract Address (Update after deployment)
+VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
 ```
 
-## Smart Contracts
+## 🔐 Smart Contract Architecture
 
-The project includes FHE-enabled smart contracts for:
-- Encrypted yield farming positions
-- Privacy-preserving transactions
-- Secure fund management
+Our FHE-enabled smart contracts provide:
 
-## Deployment
+### Core Contracts
+- **🌱 StealthYieldFarm.sol** - Main farming contract with FHE encryption
+- **🔒 PositionManager** - Encrypted position management
+- **💰 YieldPool** - Privacy-preserving yield pools
+- **🏆 RewardSystem** - Encrypted reward distribution
 
-### Vercel Deployment
+### Privacy Features
+- **🔐 FHE Encryption** - All sensitive data encrypted on-chain
+- **👻 Invisible Positions** - Positions hidden until withdrawal
+- **🛡️ MEV Protection** - Advanced front-running protection
+- **🔒 Zero-Knowledge Proofs** - Prove without revealing
 
-1. Connect your GitHub repository to Vercel
-2. Set the environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
+## 🌐 Deployment & Production
 
-### Manual Deployment
+### 🚀 Vercel Deployment (Recommended)
+
+1. **Connect Repository**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "New Project"
+   - Import `gregorystein22/stealth-yield-farm`
+
+2. **Configure Environment**
+   - Set all environment variables from the configuration section
+   - Framework: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+
+3. **Deploy**
+   - Click "Deploy"
+   - Your app will be live in minutes!
+
+### 📦 Contract Deployment
 
 ```bash
-npm run build
-npm run preview
+# Deploy to Sepolia Testnet
+npm run deploy:contract
+
+# Verify contract on Etherscan
+npm run verify:contract
 ```
 
-## Contributing
+### 🔧 Available Scripts
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+npm run deploy:contract  # Deploy smart contracts
+npm run verify:contract  # Verify contracts on Etherscan
+```
 
-## License
+## 🤝 Contributing
 
-MIT License - see LICENSE file for details
+We welcome contributions! Here's how to get started:
 
-## Support
+1. **🍴 Fork** the repository
+2. **🌱 Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **💾 Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **📤 Push** to the branch (`git push origin feature/amazing-feature`)
+5. **🔀 Open** a Pull Request
 
-For support and questions, please open an issue on GitHub.
+### Development Guidelines
+- Follow the existing code style
+- Add tests for new features
+- Update documentation as needed
+- Ensure all checks pass
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support & Community
+
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/gregorystein22/stealth-yield-farm/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/gregorystein22/stealth-yield-farm/discussions)
+- **📖 Documentation**: [Wiki](https://github.com/gregorystein22/stealth-yield-farm/wiki)
+- **💬 Discord**: [Join our community](https://discord.gg/stealthyieldfarm)
+
+## 🌟 Acknowledgments
+
+- **Zama** for FHE technology
+- **RainbowKit** for wallet integration
+- **Vercel** for hosting
+- **OpenZeppelin** for security standards
+
+---
+
+<div align="center">
+
+**🌱 Built with ❤️ for the DeFi community**
+
+[![GitHub stars](https://img.shields.io/github/stars/gregorystein22/stealth-yield-farm?style=social)](https://github.com/gregorystein22/stealth-yield-farm/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/gregorystein22/stealth-yield-farm?style=social)](https://github.com/gregorystein22/stealth-yield-farm/network)
+[![Twitter Follow](https://img.shields.io/twitter/follow/stealthyieldfarm?style=social)](https://twitter.com/stealthyieldfarm)
+
+</div>
 
