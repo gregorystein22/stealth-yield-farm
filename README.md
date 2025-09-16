@@ -70,23 +70,25 @@ npm run dev
 
 ### 🔧 Environment Configuration
 
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the root directory (copy from `env.example`):
 
 ```env
 # Blockchain Configuration
 VITE_CHAIN_ID=11155111
-VITE_RPC_URL=https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
+VITE_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_API_KEY
 VITE_RPC_URL_BACKUP=https://1rpc.io/sepolia
 
 # Wallet Connect
-VITE_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
+VITE_WALLET_CONNECT_PROJECT_ID=YOUR_WALLET_CONNECT_PROJECT_ID
 
 # API Keys
-VITE_INFURA_API_KEY=b18fb7e6ca7045ac83c41157ab93f990
+VITE_INFURA_API_KEY=YOUR_INFURA_API_KEY
 
 # Contract Address (Update after deployment)
 VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
 ```
+
+**⚠️ Security Note**: Replace all `YOUR_*` placeholders with your actual values. Never commit sensitive data to version control. See [SECURITY.md](./SECURITY.md) for detailed security guidelines.
 
 ## 🔐 Smart Contract Architecture
 

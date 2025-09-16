@@ -30,14 +30,18 @@ In the Vercel dashboard, go to "Settings" → "Environment Variables" and add:
 
 ```env
 VITE_CHAIN_ID=11155111
-VITE_RPC_URL=https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
-VITE_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
-VITE_INFURA_API_KEY=b18fb7e6ca7045ac83c41157ab93f990
+VITE_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_API_KEY
+VITE_WALLET_CONNECT_PROJECT_ID=YOUR_WALLET_CONNECT_PROJECT_ID
+VITE_INFURA_API_KEY=YOUR_INFURA_API_KEY
 VITE_RPC_URL_BACKUP=https://1rpc.io/sepolia
 VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
 ```
 
-**Important**: Replace `VITE_CONTRACT_ADDRESS` with your actual deployed contract address after deploying the smart contracts.
+**Important**: 
+- Replace all `YOUR_*` placeholders with your actual values
+- Never commit sensitive data to version control
+- Use environment variables for all sensitive configuration
+- See [SECURITY.md](./SECURITY.md) for detailed security guidelines
 
 ### Step 4: Deploy
 
@@ -105,18 +109,36 @@ VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
 |----------|-------------|---------|
 | `VITE_CHAIN_ID` | Ethereum chain ID | `11155111` (Sepolia) |
 | `VITE_RPC_URL` | Primary RPC endpoint | `https://sepolia.infura.io/v3/...` |
-| `VITE_WALLET_CONNECT_PROJECT_ID` | WalletConnect project ID | `2ec9743d0d0cd7fb94dee1a7e6d33475` |
-| `VITE_INFURA_API_KEY` | Infura API key | `b18fb7e6ca7045ac83c41157ab93f990` |
+| `VITE_WALLET_CONNECT_PROJECT_ID` | WalletConnect project ID | `YOUR_WALLET_CONNECT_PROJECT_ID` |
+| `VITE_INFURA_API_KEY` | Infura API key | `YOUR_INFURA_API_KEY` |
 | `VITE_RPC_URL_BACKUP` | Backup RPC endpoint | `https://1rpc.io/sepolia` |
 | `VITE_CONTRACT_ADDRESS` | Deployed contract address | `0x...` |
 
 ## Security Considerations
 
+### 🔐 Critical Security Requirements
 1. **Environment Variables**: Never commit sensitive keys to repository
 2. **API Keys**: Use environment variables for all API keys
-3. **Contract Verification**: Verify smart contracts on Etherscan
+3. **Private Keys**: Use secure key management for production deployments
 4. **HTTPS**: Ensure all connections use HTTPS
 5. **CORS**: Configure CORS properly for API calls
+
+### 🛡️ Security Best Practices
+- **Use test networks** for development and testing
+- **Never use mainnet** private keys in development
+- **Use separate wallets** for different environments
+- **Regular security audits** of smart contracts
+- **Monitor for suspicious activity** after deployment
+
+### 📋 Security Checklist
+- [ ] All sensitive data removed from code
+- [ ] Environment variables properly configured
+- [ ] Private keys secured and not in code
+- [ ] API keys rotated and secured
+- [ ] Smart contracts audited
+- [ ] Testnet deployment successful
+
+For detailed security guidelines, see [SECURITY.md](./SECURITY.md)
 
 ## Monitoring and Maintenance
 
